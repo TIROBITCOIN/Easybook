@@ -109,7 +109,7 @@ export async function analyzeBookmark(id: string): Promise<BookmarkItem | undefi
         sourceUrl: bookmark.sourceUrl,
         existingCategories: await listCategories()
       },
-      settings.preferredAiProvider
+      settings.aiProvider
     );
     const category = await ensureCategory(analysis.category.name, analysis.category.isNew ? 'ai' : 'user');
     const tags = await Promise.all(analysis.tags.map((tagName) => ensureTag(tagName, 'ai')));
@@ -123,7 +123,7 @@ export async function analyzeBookmark(id: string): Promise<BookmarkItem | undefi
       difficultyExplanation: analysis.difficultyExplanation,
       aiMeta: {
         analyzedAt: timestamp,
-        model: settings.preferredAiProvider === 'mock' ? 'mock-ai-v1' : 'openai-responses',
+        model: settings.aiProvider === 'mock' ? 'mock-ai-v1' : 'openai-responses',
         confidence: analysis.confidence,
         needsReview: analysis.category.isNew || analysis.confidence < 0.7,
         lastAttemptAt: timestamp

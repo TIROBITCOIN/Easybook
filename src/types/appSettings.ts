@@ -1,8 +1,18 @@
 export type AiProvider = 'real' | 'mock';
+export type ThemeMode = 'dark' | 'light';
+export type BackupMode = 'encrypted' | 'plain';
 
 export type AppSettings = {
-  id: 'settings';
+  id: 'default';
+  appLockEnabled: boolean;
+  passwordHash?: string;
+  passwordSalt?: string;
+  theme: ThemeMode;
   aiAutoAnalyze: boolean;
+  aiAnalyzeSensitiveContent: boolean;
   hasAcceptedAiPrivacyNotice: boolean;
-  preferredAiProvider: AiProvider;
+  aiProvider: AiProvider;
+  backupMode: BackupMode;
+  createdAt: string;
+  updatedAt: string;
 };

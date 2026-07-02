@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
+import { AppLockGate } from './components/AppLockGate';
 import { AppShell } from './components/AppShell';
 import { AddBookmarkPage } from './routes/AddBookmarkPage';
 import { BookmarkDetailPage } from './routes/BookmarkDetailPage';
@@ -9,16 +10,18 @@ import { SettingsPage } from './routes/SettingsPage';
 
 export function App() {
   return (
-    <Routes>
-      <Route element={<AppShell />}>
-        <Route index element={<HomePage />} />
-        <Route path="/bookmarks" element={<BookmarksPage />} />
-        <Route path="/bookmarks/:id" element={<BookmarkDetailPage />} />
-        <Route path="/add" element={<AddBookmarkPage />} />
-        <Route path="/categories" element={<CategoriesPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
-        <Route path="*" element={<Navigate replace to="/" />} />
-      </Route>
-    </Routes>
+    <AppLockGate>
+      <Routes>
+        <Route element={<AppShell />}>
+          <Route index element={<HomePage />} />
+          <Route path="/bookmarks" element={<BookmarksPage />} />
+          <Route path="/bookmarks/:id" element={<BookmarkDetailPage />} />
+          <Route path="/add" element={<AddBookmarkPage />} />
+          <Route path="/categories" element={<CategoriesPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="*" element={<Navigate replace to="/" />} />
+        </Route>
+      </Routes>
+    </AppLockGate>
   );
 }

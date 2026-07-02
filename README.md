@@ -35,6 +35,9 @@ Do not commit real API keys. `OPENAI_API_KEY` is used only by the serverless API
 - Analysis failure state and retry button
 - Category list with review status, rename, and delete
 - Home statistics backed by local data
+- Local app lock with a PBKDF2 password hash and per-password salt
+- Dark/light theme setting
+- Full local data deletion from settings
 
 ## AI Analysis
 
@@ -59,6 +62,20 @@ Bookmarks, categories, tags, and app settings are stored only in the browser Ind
 
 If the browser site data is cleared, saved Easybook data can disappear.
 
+The app lock is local to the browser. It is not an account login. Easybook does not store the password in plaintext; it stores a PBKDF2 hash and salt in IndexedDB settings. Bookmark contents are not encrypted yet, so anyone with access to the browser profile or developer tools may still be able to inspect local IndexedDB data.
+
+Settings include:
+
+- `appLockEnabled`
+- `passwordHash`
+- `passwordSalt`
+- `theme`
+- `aiAutoAnalyze`
+- `aiAnalyzeSensitiveContent`
+- `hasAcceptedAiPrivacyNotice`
+- `aiProvider`
+- `backupMode`
+
 ## Vercel Setup
 
 In Vercel project settings, add:
@@ -70,4 +87,4 @@ Do not add `OPENAI_API_KEY` as a client-visible `VITE_` variable.
 
 ## Next PR
 
-The next PR will add app lock password support, strengthen local settings storage, and prepare plain/encrypted backup flows.
+The next PR will add plain JSON export, encrypted JSON export, backup JSON import, and a restore preview before overwriting local data.
