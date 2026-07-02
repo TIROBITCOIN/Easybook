@@ -1,28 +1,73 @@
 import { db } from './db';
 import type { AppSettings } from '../types/appSettings';
 
-export const defaultSettings: AppSettings = {
-  id: 'settings',
-  aiAutoAnalyze: true,
-  hasAcceptedAiPrivacyNotice: false,
-  preferredAiProvider: import.meta.env.VITE_AI_PROVIDER === 'mock' ? 'mock' : 'real'
-};
+const nowIso = () => new Date().toISOString();
 
-export async function getSettings(): Promise<AppSettings> {
-  const settings = await db.settings.get('settings');
-  if (settings) {
-    return settings;
-  }
-
-  await db.settings.put(defaultSettings);
-  return defaultSettings;
+export function createDefaultSettings(): AppSettings {
+  const timestamp = nowIso();
+  return {
+    id: 'default',
+    appLockEnabled: true,
+    theme: 'dark',
+    aiAutoAnalyze: true,
+    aiAnalyzeSensitiveContent: true,
+    hasAcceptedAiPrivacyNotice: false,
+    aiProvider: import.meta.env.VITE_AI_PROVIDER === 'mock' ? 'mock' : 'real',
+    backupMode: 'encrypted',
+    createdAt: timestamp,
+    updatedAt: timestamp
+  };
 }
 
-export async function updateSettings(changes: Partial<Omit<AppSettings, 'id'>>): Promise<AppSettings> {
+function normalizeSettings(settings: Partial<AppSettings> | undefined): AppSettings {
+  const defaults = createDefaultSettings();
+  return {
+    ...defaults,
+    ...settings,
+    id: 'default',
+    appLockEnabled: settings?.appLockEnabled ?? defaults.appLockEnabled,
+    theme: settings?.theme ?? defaults.theme,
+    aiAutoAnalyze: settings?.aiAutoAnalyze ?? defaults.aiAutoAnalyze,
+    aiAnalyzeSensitiveContent: settings?.aiAnalyzeSensitiveContent ?? defaults.aiAnalyzeSensitiveContent,
+    hasAcceptedAiPrivacyNotice:
+      settings?.hasAcceptedAiPrivacyNotice ?? defaults.hasAcceptedAiPrivacyNotice,
+    aiProvider: settings?.aiProvider ?? defaults.aiProvider,
+    backupMode: settings?.backupMode ?? defaults.backupMode,
+    createdAt: settings?.createdAt ?? defaults.createdAt,
+    updatedAt: settings?.updatedAt ?? defaults.updatedAt
+  };
+}
+
+export async function getSettings(): Promise<AppSettings> {
+  const settings = await db.settings.get('default');
+  if (settings) {
+    const normalized = normalizeSettings(settings);
+    await db.settings.put(normalized);
+    return normalized;
+  }
+
+  const legacySettings = await db.table<Partial<AppSettings>>('settings').get('settings');
+  const normalized = normalizeSettings(legacySettings);
+  await db.settings.put(normalized);
+  return normalized;
+}
+
+export async function updateSettings(changes: Partial<Omit<AppSettings, 'id' | 'createdAt'>>): Promise<AppSettings> {
   const settings = {
     ...(await getSettings()),
-    ...changes
+    ...changes,
+    id: 'default' as const,
+    updatedAt: nowIso()
   };
   await db.settings.put(settings);
   return settings;
+}
+
+export async function clearAllData(): Promise<void> {
+  await db.transaction('rw', db.bookmarks, db.categories, db.tags, db.settings, async () => {
+    await db.bookmarks.clear();
+    await db.categories.clear();
+    await db.tags.clear();
+    await db.settings.clear();
+  });
 }

@@ -29,6 +29,13 @@ export class EasybookDatabase extends Dexie {
       tags: 'id, name, createdBy, createdAt',
       settings: 'id'
     });
+
+    this.version(4).stores({
+      bookmarks: 'id, createdAt, updatedAt, status, importance, sourceUrl, categoryId, *tagIds',
+      categories: 'id, name, createdBy, needsReview, createdAt',
+      tags: 'id, name, createdBy, createdAt',
+      settings: 'id'
+    });
   }
 }
 

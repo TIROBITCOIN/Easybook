@@ -24,3 +24,43 @@ input,
 textarea {
   font: inherit;
 }
+
+[data-theme='light'] {
+  color-scheme: light;
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+[data-theme='light'] body {
+  background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
+}
+
+[data-theme='light'] .bg-slate-950,
+[data-theme='light'] .bg-slate-950\/95 {
+  background-color: #f8fafc;
+}
+
+[data-theme='light'] .bg-slate-900\/80,
+[data-theme='light'] .bg-slate-900\/90 {
+  background-color: rgb(255 255 255 / 92%);
+}
+
+[data-theme='light'] .bg-slate-800 {
+  background-color: #e2e8f0;
+}
+
+[data-theme='light'] .border-slate-800,
+[data-theme='light'] .border-slate-700 {
+  border-color: #cbd5e1;
+}
+
+[data-theme='light'] .text-white,
+[data-theme='light'] .text-slate-50 {
+  color: #0f172a;
+}
+
+[data-theme='light'] .text-slate-300,
+[data-theme='light'] .text-slate-400,
+[data-theme='light'] .text-slate-500 {
+  color: #475569;
+}
