@@ -1,7 +1,9 @@
-import { mockAnalyzeBookmark } from '../ai/mockAnalyzeBookmark';
+import { AiAnalysisError } from '../ai/analyzeBookmarkClient';
+import { analyzeBookmark as runAnalysis } from '../ai/analysisProvider';
 import { db } from './db';
 import { ensureCategory, listCategories } from './categoryRepository';
 import { ensureTag } from './tagRepository';
+import { getSettings } from './settingsRepository';
 import type {
   BookmarkImportance,
   BookmarkItem,
@@ -97,34 +99,60 @@ export async function analyzeBookmark(id: string): Promise<BookmarkItem | undefi
     return undefined;
   }
 
-  const analysis = mockAnalyzeBookmark({
-    originalText: bookmark.originalText,
-    sourceUrl: bookmark.sourceUrl,
-    existingCategories: await listCategories()
-  });
-  const category = await ensureCategory(analysis.category.name, analysis.category.isNew ? 'ai' : 'user');
-  const tags = await Promise.all(analysis.tags.map((tagName) => ensureTag(tagName, 'ai')));
   const timestamp = nowIso();
 
-  const updatedBookmark: BookmarkItem = {
-    ...bookmark,
-    title: analysis.title || bookmark.title,
-    summary: analysis.summary,
-    categoryId: category.id,
-    tagIds: tags.map((tag) => tag.id),
-    difficultyExplanation: analysis.difficultyExplanation,
-    aiMeta: {
-      analyzedAt: timestamp,
-      model: 'mock-ai-v1',
-      confidence: analysis.confidence,
-      needsReview: analysis.category.isNew || analysis.confidence < 0.7
-    },
-    importance: analysis.importance,
-    updatedAt: timestamp
-  };
+  try {
+    const settings = await getSettings();
+    const analysis = await runAnalysis(
+      {
+        originalText: bookmark.originalText,
+        sourceUrl: bookmark.sourceUrl,
+        existingCategories: await listCategories()
+      },
+      settings.preferredAiProvider
+    );
+    const category = await ensureCategory(analysis.category.name, analysis.category.isNew ? 'ai' : 'user');
+    const tags = await Promise.all(analysis.tags.map((tagName) => ensureTag(tagName, 'ai')));
 
-  await db.bookmarks.put(updatedBookmark);
-  return updatedBookmark;
+    const updatedBookmark: BookmarkItem = {
+      ...bookmark,
+      title: analysis.title || bookmark.title,
+      summary: analysis.summary,
+      categoryId: category.id,
+      tagIds: tags.map((tag) => tag.id),
+      difficultyExplanation: analysis.difficultyExplanation,
+      aiMeta: {
+        analyzedAt: timestamp,
+        model: settings.preferredAiProvider === 'mock' ? 'mock-ai-v1' : 'openai-responses',
+        confidence: analysis.confidence,
+        needsReview: analysis.category.isNew || analysis.confidence < 0.7,
+        lastAttemptAt: timestamp
+      },
+      importance: analysis.importance,
+      updatedAt: timestamp
+    };
+
+    await db.bookmarks.put(updatedBookmark);
+    return updatedBookmark;
+  } catch (error) {
+    const errorCode = error instanceof AiAnalysisError ? error.code : 'UNKNOWN';
+    const errorMessage =
+      error instanceof Error ? error.message : 'AI 분석에 실패했습니다. 다시 시도해 주세요.';
+    const failedBookmark: BookmarkItem = {
+      ...bookmark,
+      aiMeta: {
+        ...bookmark.aiMeta,
+        errorCode,
+        errorMessage,
+        lastAttemptAt: timestamp,
+        needsReview: true
+      },
+      updatedAt: timestamp
+    };
+
+    await db.bookmarks.put(failedBookmark);
+    return failedBookmark;
+  }
 }
 
 export async function deleteBookmark(id: string): Promise<void> {

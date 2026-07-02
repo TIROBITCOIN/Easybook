@@ -21,6 +21,9 @@ export type BookmarkItem = {
     model?: string;
     confidence?: number;
     needsReview: boolean;
+    errorCode?: string;
+    errorMessage?: string;
+    lastAttemptAt?: string;
   };
   status: BookmarkStatus;
   importance: BookmarkImportance;
