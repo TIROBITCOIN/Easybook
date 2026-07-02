@@ -1,12 +1,21 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { AnalysisStatusBadge } from '../components/AnalysisStatusBadge';
+import { CategoryBadge } from '../components/CategoryBadge';
+import { DifficultyExplanation } from '../components/DifficultyExplanation';
+import { TagPill } from '../components/TagPill';
 import {
+  analyzeBookmark,
   deleteBookmark,
   getBookmark,
   updateBookmarkImportance,
   updateBookmarkStatus
 } from '../db/bookmarkRepository';
+import { getCategory } from '../db/categoryRepository';
+import { listTags } from '../db/tagRepository';
 import type { BookmarkImportance, BookmarkItem, BookmarkStatus } from '../types/bookmark';
+import type { Category } from '../types/category';
+import type { Tag } from '../types/tag';
 
 function formatDate(value: string): string {
   return new Intl.DateTimeFormat('ko-KR', {
@@ -15,15 +24,14 @@ function formatDate(value: string): string {
   }).format(new Date(value));
 }
 
-function EmptyExplanation() {
-  return <p className="mt-2 text-sm leading-6 text-slate-400">AI 분석 전입니다.</p>;
-}
-
 export function BookmarkDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [bookmark, setBookmark] = useState<BookmarkItem | null>(null);
+  const [category, setCategory] = useState<Category | undefined>();
+  const [tags, setTags] = useState<Tag[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState('');
 
   const refresh = useCallback(async () => {
@@ -34,7 +42,11 @@ export function BookmarkDetailPage() {
     }
 
     try {
-      setBookmark((await getBookmark(id)) ?? null);
+      const nextBookmark = (await getBookmark(id)) ?? null;
+      const allTags = await listTags();
+      setBookmark(nextBookmark);
+      setCategory(await getCategory(nextBookmark?.categoryId));
+      setTags(nextBookmark ? allTags.filter((tag) => nextBookmark.tagIds.includes(tag.id)) : []);
       setError('');
     } catch {
       setError('북마크를 불러오지 못했습니다.');
@@ -57,6 +69,14 @@ export function BookmarkDetailPage() {
     if (!bookmark) return;
     await updateBookmarkImportance(bookmark.id, importance);
     await refresh();
+  };
+
+  const rerunAnalysis = async () => {
+    if (!bookmark) return;
+    setIsAnalyzing(true);
+    await analyzeBookmark(bookmark.id);
+    await refresh();
+    setIsAnalyzing(false);
   };
 
   if (isLoading) {
@@ -82,6 +102,8 @@ export function BookmarkDetailPage() {
     <div className="space-y-4">
       <section className="rounded-3xl border border-slate-800 bg-slate-900/80 p-5">
         <div className="flex flex-wrap gap-2">
+          <AnalysisStatusBadge bookmark={bookmark} category={category} />
+          <CategoryBadge category={category} />
           <span className="rounded-full bg-slate-950 px-3 py-1 text-xs font-bold text-slate-300">{bookmark.status}</span>
           <span className="rounded-full bg-slate-950 px-3 py-1 text-xs font-bold text-slate-300">{bookmark.importance}</span>
         </div>
@@ -91,6 +113,31 @@ export function BookmarkDetailPage() {
             {bookmark.sourceUrl}
           </a>
         ) : null}
+      </section>
+
+      <section className="rounded-3xl border border-slate-800 bg-slate-900/80 p-5">
+        <h3 className="font-black text-white">요약</h3>
+        <p className="mt-3 text-sm leading-6 text-slate-400">{bookmark.summary || 'AI 분석 전입니다.'}</p>
+        <button
+          className="mt-4 min-h-12 w-full rounded-2xl bg-sky-300 px-5 text-sm font-black text-slate-950 disabled:opacity-60"
+          disabled={isAnalyzing}
+          onClick={rerunAnalysis}
+          type="button"
+        >
+          {isAnalyzing ? '다시 분석 중...' : '다시 분석하기'}
+        </button>
+      </section>
+
+      <section className="flex flex-wrap gap-2">
+        {tags.map((tag) => (
+          <TagPill key={tag.id} tag={tag} />
+        ))}
+      </section>
+
+      <section className="grid gap-3">
+        <DifficultyExplanation label="하" value={bookmark.difficultyExplanation.easy} />
+        <DifficultyExplanation label="중" value={bookmark.difficultyExplanation.medium} />
+        <DifficultyExplanation label="상" value={bookmark.difficultyExplanation.advanced} />
       </section>
 
       <section className="grid gap-3 sm:grid-cols-2">
@@ -128,22 +175,11 @@ export function BookmarkDetailPage() {
         </p>
       </section>
 
-      <section className="grid gap-3">
-        {(['easy', 'medium', 'advanced'] as const).map((level) => (
-          <article className="rounded-3xl border border-slate-800 bg-slate-900/80 p-5" key={level}>
-            <h3 className="font-black text-white">{level === 'easy' ? '하' : level === 'medium' ? '중' : '상'} 설명</h3>
-            {bookmark.difficultyExplanation[level] ? (
-              <p className="mt-2 text-sm leading-6 text-slate-400">{bookmark.difficultyExplanation[level]}</p>
-            ) : (
-              <EmptyExplanation />
-            )}
-          </article>
-        ))}
-      </section>
-
       <section className="rounded-3xl border border-slate-800 bg-slate-900/80 p-5 text-sm leading-7 text-slate-400">
         <p>저장 날짜: {formatDate(bookmark.createdAt)}</p>
         <p>수정 날짜: {formatDate(bookmark.updatedAt)}</p>
+        <p>분석 모델: {bookmark.aiMeta.model ?? '없음'}</p>
+        <p>신뢰도: {bookmark.aiMeta.confidence ? Math.round(bookmark.aiMeta.confidence * 100) : 0}%</p>
       </section>
 
       <button

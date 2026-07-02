@@ -2,21 +2,29 @@ import { useEffect, useState } from 'react';
 import { BookmarkCard } from '../components/BookmarkCard';
 import { EmptyState } from '../components/EmptyState';
 import { SearchInput } from '../components/SearchInput';
+import { listCategories } from '../db/categoryRepository';
 import { searchBookmarks } from '../db/bookmarkRepository';
+import { listTags } from '../db/tagRepository';
 import type { BookmarkItem } from '../types/bookmark';
+import type { Category } from '../types/category';
+import type { Tag } from '../types/tag';
 
 export function BookmarksPage() {
   const [query, setQuery] = useState('');
   const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
   const [error, setError] = useState('');
 
   useEffect(() => {
     let isMounted = true;
 
-    void searchBookmarks(query)
-      .then((nextBookmarks) => {
+    void Promise.all([searchBookmarks(query), listCategories(), listTags()])
+      .then(([nextBookmarks, nextCategories, nextTags]) => {
         if (isMounted) {
           setBookmarks(nextBookmarks);
+          setCategories(nextCategories);
+          setTags(nextTags);
           setError('');
         }
       })
@@ -50,7 +58,7 @@ export function BookmarksPage() {
         <EmptyState
           actionLabel="첫 북마크 추가하기"
           actionTo="/add"
-          description="트윗 링크나 본문을 저장하면 이곳에 카드로 표시됩니다."
+          description="트윗 링크나 본문을 저장하면 mock 분석 결과와 함께 이곳에 표시됩니다."
           title="아직 저장된 북마크가 없습니다."
         />
       ) : null}
@@ -66,7 +74,12 @@ export function BookmarksPage() {
 
       <section className="grid gap-3 md:grid-cols-2">
         {bookmarks.map((bookmark) => (
-          <BookmarkCard bookmark={bookmark} key={bookmark.id} />
+          <BookmarkCard
+            bookmark={bookmark}
+            category={categories.find((category) => category.id === bookmark.categoryId)}
+            key={bookmark.id}
+            tags={tags.filter((tag) => bookmark.tagIds.includes(tag.id))}
+          />
         ))}
       </section>
     </div>

@@ -1,4 +1,7 @@
+import { mockAnalyzeBookmark } from '../ai/mockAnalyzeBookmark';
 import { db } from './db';
+import { ensureCategory, listCategories } from './categoryRepository';
+import { ensureTag } from './tagRepository';
 import type {
   BookmarkImportance,
   BookmarkItem,
@@ -71,7 +74,7 @@ export async function searchBookmarks(query: string): Promise<BookmarkItem[]> {
   }
 
   return bookmarks.filter((bookmark) => {
-    return [bookmark.title, bookmark.originalText, bookmark.userMemo, bookmark.sourceUrl ?? ''].some(
+    return [bookmark.title, bookmark.summary, bookmark.originalText, bookmark.userMemo, bookmark.sourceUrl ?? ''].some(
       (value) => value.toLowerCase().includes(normalized)
     );
   });
@@ -86,6 +89,42 @@ export async function updateBookmarkImportance(
   importance: BookmarkImportance
 ): Promise<void> {
   await db.bookmarks.update(id, { importance, updatedAt: nowIso() });
+}
+
+export async function analyzeBookmark(id: string): Promise<BookmarkItem | undefined> {
+  const bookmark = await getBookmark(id);
+  if (!bookmark) {
+    return undefined;
+  }
+
+  const analysis = mockAnalyzeBookmark({
+    originalText: bookmark.originalText,
+    sourceUrl: bookmark.sourceUrl,
+    existingCategories: await listCategories()
+  });
+  const category = await ensureCategory(analysis.category.name, analysis.category.isNew ? 'ai' : 'user');
+  const tags = await Promise.all(analysis.tags.map((tagName) => ensureTag(tagName, 'ai')));
+  const timestamp = nowIso();
+
+  const updatedBookmark: BookmarkItem = {
+    ...bookmark,
+    title: analysis.title || bookmark.title,
+    summary: analysis.summary,
+    categoryId: category.id,
+    tagIds: tags.map((tag) => tag.id),
+    difficultyExplanation: analysis.difficultyExplanation,
+    aiMeta: {
+      analyzedAt: timestamp,
+      model: 'mock-ai-v1',
+      confidence: analysis.confidence,
+      needsReview: analysis.category.isNew || analysis.confidence < 0.7
+    },
+    importance: analysis.importance,
+    updatedAt: timestamp
+  };
+
+  await db.bookmarks.put(updatedBookmark);
+  return updatedBookmark;
 }
 
 export async function deleteBookmark(id: string): Promise<void> {
