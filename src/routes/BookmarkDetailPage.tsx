@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { AiPrivacyNotice } from '../components/AiPrivacyNotice';
+import { AnalysisErrorBox } from '../components/AnalysisErrorBox';
 import { AnalysisStatusBadge } from '../components/AnalysisStatusBadge';
 import { CategoryBadge } from '../components/CategoryBadge';
 import { DifficultyExplanation } from '../components/DifficultyExplanation';
@@ -12,6 +14,7 @@ import {
   updateBookmarkStatus
 } from '../db/bookmarkRepository';
 import { getCategory } from '../db/categoryRepository';
+import { getSettings, updateSettings } from '../db/settingsRepository';
 import { listTags } from '../db/tagRepository';
 import type { BookmarkImportance, BookmarkItem, BookmarkStatus } from '../types/bookmark';
 import type { Category } from '../types/category';
@@ -32,6 +35,7 @@ export function BookmarkDetailPage() {
   const [tags, setTags] = useState<Tag[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [showPrivacyNotice, setShowPrivacyNotice] = useState(false);
   const [error, setError] = useState('');
 
   const refresh = useCallback(async () => {
@@ -73,6 +77,12 @@ export function BookmarkDetailPage() {
 
   const rerunAnalysis = async () => {
     if (!bookmark) return;
+    const settings = await getSettings();
+    if (!settings.hasAcceptedAiPrivacyNotice) {
+      setShowPrivacyNotice(true);
+      return;
+    }
+
     setIsAnalyzing(true);
     await analyzeBookmark(bookmark.id);
     await refresh();
@@ -100,6 +110,16 @@ export function BookmarkDetailPage() {
 
   return (
     <div className="space-y-4">
+      {showPrivacyNotice ? (
+        <AiPrivacyNotice
+          onAccept={async () => {
+            await updateSettings({ hasAcceptedAiPrivacyNotice: true });
+            setShowPrivacyNotice(false);
+            await rerunAnalysis();
+          }}
+          onDecline={() => setShowPrivacyNotice(false)}
+        />
+      ) : null}
       <section className="rounded-3xl border border-slate-800 bg-slate-900/80 p-5">
         <div className="flex flex-wrap gap-2">
           <AnalysisStatusBadge bookmark={bookmark} category={category} />
@@ -114,6 +134,8 @@ export function BookmarkDetailPage() {
           </a>
         ) : null}
       </section>
+
+      <AnalysisErrorBox bookmark={bookmark} />
 
       <section className="rounded-3xl border border-slate-800 bg-slate-900/80 p-5">
         <h3 className="font-black text-white">요약</h3>

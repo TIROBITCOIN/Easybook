@@ -8,10 +8,13 @@ export function AnalysisStatusBadge({
   bookmark: BookmarkItem;
   category?: Category;
 }) {
+  const hasError = Boolean(bookmark.aiMeta.errorMessage);
   const needsReview = bookmark.aiMeta.needsReview || category?.needsReview;
   const isAnalyzed = Boolean(bookmark.difficultyExplanation.easy);
-  const label = needsReview ? '검토 필요' : isAnalyzed ? '분석 완료' : '분석 전';
-  const className = needsReview
+  const label = hasError ? '분석 실패' : needsReview ? '검토 필요' : isAnalyzed ? '분석 완료' : '분석 전';
+  const className = hasError
+    ? 'border-red-300/40 bg-red-300/10 text-red-200'
+    : needsReview
     ? 'border-amber-300/40 bg-amber-300/10 text-amber-200'
     : isAnalyzed
       ? 'border-emerald-300/40 bg-emerald-300/10 text-emerald-200'
