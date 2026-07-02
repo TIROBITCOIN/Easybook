@@ -1,6 +1,6 @@
 import { FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createBookmark } from '../db/bookmarkRepository';
+import { analyzeBookmark, createBookmark } from '../db/bookmarkRepository';
 
 export function AddBookmarkPage() {
   const navigate = useNavigate();
@@ -23,6 +23,7 @@ export function AddBookmarkPage() {
     setIsSaving(true);
     try {
       const bookmark = await createBookmark({ sourceUrl, originalText, title, userMemo });
+      await analyzeBookmark(bookmark.id);
       navigate(`/bookmarks/${bookmark.id}`);
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : '북마크 저장에 실패했습니다.');
@@ -39,6 +40,9 @@ export function AddBookmarkPage() {
       <div>
         <p className="text-xs font-bold uppercase tracking-normal text-sky-300">Add bookmark</p>
         <h2 className="mt-2 text-2xl font-black text-white">북마크 추가</h2>
+        <p className="mt-2 text-sm leading-6 text-slate-400">
+          저장하면 실제 AI API 없이 mock 분석이 자동으로 실행됩니다.
+        </p>
       </div>
       <label className="block">
         <span className="mb-2 block text-sm font-bold text-slate-300">트윗 링크</span>
@@ -82,7 +86,7 @@ export function AddBookmarkPage() {
         disabled={isSaving}
         type="submit"
       >
-        {isSaving ? '저장 중...' : '저장'}
+        {isSaving ? '저장 및 분석 중...' : '저장하고 mock 분석'}
       </button>
     </form>
   );
