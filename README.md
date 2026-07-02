@@ -1,8 +1,6 @@
 # Easybook
 
-Easybook is a mobile-first web app shell for a personal X/Twitter bookmark explainer.
-
-This PR only includes the basic app layout and placeholder screens. Storage, AI analysis, app lock, backup, and sharing features are intentionally left for later PRs.
+Easybook is a mobile-first personal bookmark explainer for X/Twitter links and text.
 
 ## Local Development
 
@@ -12,3 +10,19 @@ npm run dev
 npm run build
 npm run preview
 ```
+
+## Current Features
+
+- Mobile-first dark app shell
+- Home, bookmarks, add, categories, and settings routes
+- Local bookmark creation with link, original text, title, and memo
+- Bookmark list, search, detail view, status changes, importance changes, and delete
+- Home statistics backed by local bookmark data
+
+## Local Data
+
+Bookmarks are stored only in the browser IndexedDB database named `easybook-db`, in the `bookmarks` table. If the browser site data is cleared, saved bookmarks can disappear.
+
+## Next PR
+
+The next PR will add mock AI analysis for title, summary, category, tags, and easy/medium/advanced explanations.

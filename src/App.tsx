@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { AppShell } from './components/AppShell';
 import { AddBookmarkPage } from './routes/AddBookmarkPage';
+import { BookmarkDetailPage } from './routes/BookmarkDetailPage';
 import { BookmarksPage } from './routes/BookmarksPage';
 import { CategoriesPage } from './routes/CategoriesPage';
 import { HomePage } from './routes/HomePage';
@@ -12,6 +13,7 @@ export function App() {
       <Route element={<AppShell />}>
         <Route index element={<HomePage />} />
         <Route path="/bookmarks" element={<BookmarksPage />} />
+        <Route path="/bookmarks/:id" element={<BookmarkDetailPage />} />
         <Route path="/add" element={<AddBookmarkPage />} />
         <Route path="/categories" element={<CategoriesPage />} />
         <Route path="/settings" element={<SettingsPage />} />
