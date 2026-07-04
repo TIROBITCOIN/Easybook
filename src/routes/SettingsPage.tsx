@@ -4,6 +4,7 @@ import { clearSessionUnlocked } from '../auth/lockState';
 import { generateSalt, hashPassword, verifyPassword } from '../auth/passwordCrypto';
 import { getConfiguredProvider } from '../ai/analysisProvider';
 import { AiPrivacyNotice } from '../components/AiPrivacyNotice';
+import { BackupPanel } from '../components/BackupPanel';
 import { DangerZone } from '../components/DangerZone';
 import { PasswordInput } from '../components/PasswordInput';
 import { SettingsToggle } from '../components/SettingsToggle';
@@ -224,9 +225,13 @@ export function SettingsPage() {
         </label>
       </section>
 
-      <section className="rounded-3xl border border-slate-800 bg-slate-900/80 p-5 text-base font-bold text-slate-300">
-        백업/복원: 다음 PR에서 추가 예정
-      </section>
+      <BackupPanel
+        onRestored={async () => {
+          const nextSettings = await getSettings();
+          setSettings(nextSettings);
+          document.documentElement.dataset.theme = nextSettings.theme;
+        }}
+      />
 
       <DangerZone
         onDeleteAll={async () => {
