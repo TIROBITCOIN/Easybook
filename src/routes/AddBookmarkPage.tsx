@@ -2,8 +2,11 @@ import { FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { enqueueBookmarkAnalysis, runAnalysisQueue } from '../analysisQueue/analysisQueueRunner';
 import { AiPrivacyNotice } from '../components/AiPrivacyNotice';
+import { DuplicateWarningBox } from '../components/DuplicateWarningBox';
 import { createBookmark } from '../db/bookmarkRepository';
 import { getSettings, updateSettings } from '../db/settingsRepository';
+import { findDuplicateCandidates } from '../duplicates/duplicateDetection';
+import type { DuplicateCandidate } from '../duplicates/duplicateTypes';
 
 export function AddBookmarkPage() {
   const navigate = useNavigate();
@@ -14,14 +17,15 @@ export function AddBookmarkPage() {
   const [error, setError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [pendingBookmarkId, setPendingBookmarkId] = useState('');
+  const [duplicateCandidates, setDuplicateCandidates] = useState<DuplicateCandidate[]>([]);
 
   const runQueuedAnalysisAndNavigate = async (bookmarkId: string) => {
     await runAnalysisQueue();
     navigate(`/bookmarks/${bookmarkId}`);
   };
 
-  const submit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const submit = async (event?: FormEvent<HTMLFormElement>, forceDuplicateSave = false) => {
+    event?.preventDefault();
     setError('');
 
     if (!sourceUrl.trim() && !originalText.trim()) {
@@ -31,7 +35,19 @@ export function AddBookmarkPage() {
 
     setIsSaving(true);
     try {
-      const bookmark = await createBookmark({ sourceUrl, originalText, title, userMemo });
+      const candidates = await findDuplicateCandidates({ sourceUrl, originalText, title });
+      if (candidates.length > 0 && !forceDuplicateSave) {
+        setDuplicateCandidates(candidates);
+        return;
+      }
+
+      const bookmark = await createBookmark({
+        sourceUrl,
+        originalText,
+        title,
+        userMemo,
+        duplicateStatus: candidates.length > 0 ? 'candidate' : 'none'
+      });
       const settings = await getSettings();
 
       if (!settings.aiAutoAnalyze || !settings.analysisAutoRun) {
@@ -54,6 +70,10 @@ export function AddBookmarkPage() {
     }
   };
 
+  const saveAnyway = () => {
+    void submit(undefined, true);
+  };
+
   return (
     <>
       {pendingBookmarkId ? (
@@ -72,6 +92,15 @@ export function AddBookmarkPage() {
           }}
         />
       ) : null}
+      <DuplicateWarningBox
+        candidates={duplicateCandidates}
+        isSaving={isSaving}
+        onCancel={() => {
+          setDuplicateCandidates([]);
+          setIsSaving(false);
+        }}
+        onSaveAnyway={saveAnyway}
+      />
       <form
         className="space-y-4 rounded-3xl border border-slate-800 bg-slate-900/80 p-5 shadow-2xl shadow-black/20"
         onSubmit={submit}

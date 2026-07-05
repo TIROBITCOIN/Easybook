@@ -2,6 +2,8 @@ import { AiAnalysisError } from '../ai/analyzeBookmarkClient';
 import { analyzeBookmark as runAnalysis } from '../ai/analysisProvider';
 import { clearAnalysisQueueForBookmark } from '../analysisQueue/analysisQueueRepository';
 import { truncateAnalysisText } from '../analysisQueue/analysisLimits';
+import { createContentFingerprint } from '../duplicates/contentFingerprint';
+import { normalizeUrlForDuplicateCheck } from '../duplicates/urlNormalization';
 import { db } from './db';
 import { ensureCategory, listCategories } from './categoryRepository';
 import { ensureTag } from './tagRepository';
@@ -34,12 +36,23 @@ export async function createBookmark(input: CreateBookmarkInput): Promise<Bookma
   }
 
   const timestamp = nowIso();
+  const title = createTitle(input);
+  const canonicalUrl = sourceUrl ? normalizeUrlForDuplicateCheck(sourceUrl) : undefined;
+  const contentFingerprint = createContentFingerprint({
+    title,
+    originalText,
+    sourceUrl
+  });
   const bookmark: BookmarkItem = {
     id: crypto.randomUUID(),
     source: sourceUrl ? 'manual-url' : 'manual-text',
     sourceUrl: sourceUrl || undefined,
+    canonicalUrl,
+    contentFingerprint: contentFingerprint || undefined,
+    duplicateStatus: input.duplicateStatus ?? 'none',
+    duplicateCheckedAt: timestamp,
     originalText,
-    title: createTitle(input),
+    title,
     summary: '',
     tagIds: [],
     difficultyExplanation: {
@@ -72,6 +85,47 @@ export async function findBookmarkBySourceUrl(sourceUrl: string): Promise<Bookma
   }
 
   return db.bookmarks.where('sourceUrl').equals(normalized).first();
+}
+
+export async function updateBookmarkDuplicateState(
+  id: string,
+  changes: {
+    duplicateOfBookmarkId?: string;
+    duplicateStatus: BookmarkItem['duplicateStatus'];
+  }
+): Promise<void> {
+  await db.bookmarks.update(id, {
+    duplicateOfBookmarkId: changes.duplicateOfBookmarkId,
+    duplicateStatus: changes.duplicateStatus,
+    duplicateCheckedAt: nowIso(),
+    updatedAt: nowIso()
+  });
+}
+
+export async function ensureBookmarkDuplicateMetadata(bookmark: BookmarkItem): Promise<BookmarkItem> {
+  const canonicalUrl = bookmark.canonicalUrl ?? (bookmark.sourceUrl ? normalizeUrlForDuplicateCheck(bookmark.sourceUrl) : undefined);
+  const contentFingerprint =
+    bookmark.contentFingerprint ||
+    createContentFingerprint({
+      title: bookmark.title,
+      originalText: bookmark.originalText,
+      sourceUrl: bookmark.sourceUrl
+    }) ||
+    undefined;
+
+  if (canonicalUrl === bookmark.canonicalUrl && contentFingerprint === bookmark.contentFingerprint && bookmark.duplicateStatus) {
+    return bookmark;
+  }
+
+  const updatedBookmark: BookmarkItem = {
+    ...bookmark,
+    canonicalUrl,
+    contentFingerprint,
+    duplicateStatus: bookmark.duplicateStatus ?? 'none',
+    duplicateCheckedAt: bookmark.duplicateCheckedAt ?? nowIso()
+  };
+  await db.bookmarks.put(updatedBookmark);
+  return updatedBookmark;
 }
 
 export async function listBookmarks(): Promise<BookmarkItem[]> {

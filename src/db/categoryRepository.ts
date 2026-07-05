@@ -1,4 +1,5 @@
 import { db } from './db';
+import { normalizeNameForLookup } from './nameNormalization';
 import type { Category } from '../types/category';
 
 const nowIso = () => new Date().toISOString();
@@ -19,9 +20,10 @@ export async function getCategory(id?: string): Promise<Category | undefined> {
 }
 
 export async function ensureCategory(name: string, createdBy: 'user' | 'ai'): Promise<Category> {
-  const normalized = name.trim().toLowerCase();
+  const trimmedName = name.trim().replace(/\s+/g, ' ');
+  const normalized = normalizeNameForLookup(name);
   const existing = (await db.categories.toArray()).find(
-    (category) => category.name.toLowerCase() === normalized
+    (category) => normalizeNameForLookup(category.name) === normalized
   );
 
   if (existing) {
@@ -31,9 +33,9 @@ export async function ensureCategory(name: string, createdBy: 'user' | 'ai'): Pr
   const timestamp = nowIso();
   const category: Category = {
     id: crypto.randomUUID(),
-    name: name.trim(),
+    name: trimmedName,
     description: createdBy === 'ai' ? 'Mock AI가 제안한 카테고리입니다.' : '',
-    color: colorForName(name),
+    color: colorForName(trimmedName),
     createdBy,
     needsReview: createdBy === 'ai',
     createdAt: timestamp,

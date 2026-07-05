@@ -13,6 +13,7 @@ import type { Tag } from '../types/tag';
 
 export function BookmarksPage() {
   const [query, setQuery] = useState('');
+  const [duplicateFilter, setDuplicateFilter] = useState<'all' | 'candidate' | 'confirmed' | 'not_duplicate'>('all');
   const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
   const [queueItems, setQueueItems] = useState<AnalysisQueueItem[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -50,6 +51,19 @@ export function BookmarksPage() {
         <div className="mt-4">
           <SearchInput onChange={setQuery} value={query} />
         </div>
+        <label className="mt-4 block">
+          <span className="mb-2 block text-sm font-bold text-slate-300">중복 필터</span>
+          <select
+            className="min-h-12 w-full rounded-2xl border border-slate-700 bg-slate-950 px-4 text-base text-white outline-none focus:border-sky-300"
+            onChange={(event) => setDuplicateFilter(event.target.value as typeof duplicateFilter)}
+            value={duplicateFilter}
+          >
+            <option value="all">전체</option>
+            <option value="candidate">중복 후보</option>
+            <option value="confirmed">중복 확정</option>
+            <option value="not_duplicate">중복 아님</option>
+          </select>
+        </label>
       </section>
 
       {error ? (
@@ -77,7 +91,9 @@ export function BookmarksPage() {
       ) : null}
 
       <section className="grid gap-3 md:grid-cols-2">
-        {bookmarks.map((bookmark) => (
+        {bookmarks
+          .filter((bookmark) => duplicateFilter === 'all' || bookmark.duplicateStatus === duplicateFilter)
+          .map((bookmark) => (
           <BookmarkCard
             bookmark={bookmark}
             category={categories.find((category) => category.id === bookmark.categoryId)}

@@ -1,4 +1,5 @@
 import { db } from './db';
+import { normalizeNameForLookup } from './nameNormalization';
 import type { Tag } from '../types/tag';
 
 export async function listTags(): Promise<Tag[]> {
@@ -6,8 +7,9 @@ export async function listTags(): Promise<Tag[]> {
 }
 
 export async function ensureTag(name: string, createdBy: 'user' | 'ai' = 'ai'): Promise<Tag> {
-  const normalized = name.trim().toLowerCase();
-  const existing = (await db.tags.toArray()).find((tag) => tag.name.toLowerCase() === normalized);
+  const trimmedName = name.trim().replace(/\s+/g, ' ');
+  const normalized = normalizeNameForLookup(name);
+  const existing = (await db.tags.toArray()).find((tag) => normalizeNameForLookup(tag.name) === normalized);
 
   if (existing) {
     return existing;
@@ -15,7 +17,7 @@ export async function ensureTag(name: string, createdBy: 'user' | 'ai' = 'ai'): 
 
   const tag: Tag = {
     id: crypto.randomUUID(),
-    name: name.trim(),
+    name: trimmedName,
     createdBy,
     createdAt: new Date().toISOString()
   };

@@ -9,16 +9,21 @@ import { AnalysisQueueStatusBadge } from '../components/AnalysisQueueStatusBadge
 import { AnalysisStatusBadge } from '../components/AnalysisStatusBadge';
 import { CategoryBadge } from '../components/CategoryBadge';
 import { DifficultyExplanation } from '../components/DifficultyExplanation';
+import { DuplicateCandidateList } from '../components/DuplicateCandidateList';
+import { DuplicateStatusBadge } from '../components/DuplicateStatusBadge';
 import { TagPill } from '../components/TagPill';
 import {
   deleteBookmark,
   getBookmark,
+  updateBookmarkDuplicateState,
   updateBookmarkImportance,
   updateBookmarkStatus
 } from '../db/bookmarkRepository';
 import { getCategory } from '../db/categoryRepository';
 import { getSettings, updateSettings } from '../db/settingsRepository';
 import { listTags } from '../db/tagRepository';
+import { findDuplicateCandidates } from '../duplicates/duplicateDetection';
+import type { DuplicateCandidate } from '../duplicates/duplicateTypes';
 import type { BookmarkImportance, BookmarkItem, BookmarkStatus } from '../types/bookmark';
 import type { Category } from '../types/category';
 import type { Tag } from '../types/tag';
@@ -35,6 +40,7 @@ export function BookmarkDetailPage() {
   const navigate = useNavigate();
   const [bookmark, setBookmark] = useState<BookmarkItem | null>(null);
   const [queueItem, setQueueItem] = useState<AnalysisQueueItem | undefined>();
+  const [duplicateCandidates, setDuplicateCandidates] = useState<DuplicateCandidate[]>([]);
   const [category, setCategory] = useState<Category | undefined>();
   const [tags, setTags] = useState<Tag[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -55,6 +61,16 @@ export function BookmarkDetailPage() {
       const allTags = await listTags();
       setBookmark(nextBookmark);
       setQueueItem(await getLatestAnalysisQueueItemForBookmark(id));
+      setDuplicateCandidates(
+        nextBookmark && nextBookmark.duplicateStatus !== 'not_duplicate'
+          ? await findDuplicateCandidates({
+              sourceUrl: nextBookmark.sourceUrl,
+              title: nextBookmark.title,
+              originalText: nextBookmark.originalText,
+              excludeBookmarkId: nextBookmark.id
+            })
+          : []
+      );
       setCategory(await getCategory(nextBookmark?.categoryId));
       setTags(nextBookmark ? allTags.filter((tag) => nextBookmark.tagIds.includes(tag.id)) : []);
       setError('');
@@ -131,6 +147,7 @@ export function BookmarkDetailPage() {
         <div className="flex flex-wrap gap-2">
           <AnalysisStatusBadge bookmark={bookmark} category={category} queueItem={queueItem} />
           <AnalysisQueueStatusBadge queueItem={queueItem} />
+          <DuplicateStatusBadge status={bookmark.duplicateStatus} />
           <CategoryBadge category={category} />
           <span className="rounded-full bg-slate-950 px-3 py-1 text-xs font-bold text-slate-300">{bookmark.status}</span>
           <span className="rounded-full bg-slate-950 px-3 py-1 text-xs font-bold text-slate-300">{bookmark.importance}</span>
@@ -142,6 +159,32 @@ export function BookmarkDetailPage() {
           </a>
         ) : null}
       </section>
+
+      {duplicateCandidates.length > 0 || bookmark.duplicateStatus === 'confirmed' ? (
+        <section className="space-y-4 rounded-3xl border border-amber-300/30 bg-amber-300/10 p-5 text-sm leading-6 text-amber-100">
+          <div>
+            <p className="font-black text-white">중복 후보</p>
+            <p className="mt-1">같은 링크이거나 내용이 유사한 북마크가 있습니다. 자동 병합이나 삭제는 하지 않습니다.</p>
+          </div>
+          <DuplicateCandidateList
+            candidates={duplicateCandidates}
+            onConfirmDuplicate={async (candidate) => {
+              await updateBookmarkDuplicateState(bookmark.id, {
+                duplicateStatus: 'confirmed',
+                duplicateOfBookmarkId: candidate.bookmarkId
+              });
+              await refresh();
+            }}
+            onMarkNotDuplicate={async () => {
+              await updateBookmarkDuplicateState(bookmark.id, {
+                duplicateStatus: 'not_duplicate',
+                duplicateOfBookmarkId: undefined
+              });
+              await refresh();
+            }}
+          />
+        </section>
+      ) : null}
 
       <AnalysisErrorBox bookmark={bookmark} queueItem={queueItem} />
 

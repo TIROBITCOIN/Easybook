@@ -1,11 +1,17 @@
 export type BookmarkSource = 'manual-url' | 'manual-text' | 'x-share' | 'x-api';
 export type BookmarkStatus = 'unread' | 'read' | 'archived';
 export type BookmarkImportance = 'low' | 'medium' | 'high';
+export type BookmarkDuplicateStatus = 'none' | 'candidate' | 'confirmed' | 'not_duplicate';
 
 export type BookmarkItem = {
   id: string;
   source: BookmarkSource;
   sourceUrl?: string;
+  canonicalUrl?: string;
+  contentFingerprint?: string;
+  duplicateOfBookmarkId?: string;
+  duplicateStatus?: BookmarkDuplicateStatus;
+  duplicateCheckedAt?: string;
   originalText: string;
   title: string;
   summary: string;
@@ -38,4 +44,5 @@ export type CreateBookmarkInput = {
   originalText: string;
   title?: string;
   userMemo?: string;
+  duplicateStatus?: BookmarkDuplicateStatus;
 };
