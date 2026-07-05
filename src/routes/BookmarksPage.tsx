@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react';
 import { BookmarkCard } from '../components/BookmarkCard';
 import { EmptyState } from '../components/EmptyState';
 import { SearchInput } from '../components/SearchInput';
+import { listAnalysisQueueItems } from '../analysisQueue/analysisQueueRepository';
 import { listCategories } from '../db/categoryRepository';
 import { searchBookmarks } from '../db/bookmarkRepository';
 import { listTags } from '../db/tagRepository';
+import type { AnalysisQueueItem } from '../analysisQueue/analysisQueueTypes';
 import type { BookmarkItem } from '../types/bookmark';
 import type { Category } from '../types/category';
 import type { Tag } from '../types/tag';
@@ -12,6 +14,7 @@ import type { Tag } from '../types/tag';
 export function BookmarksPage() {
   const [query, setQuery] = useState('');
   const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
+  const [queueItems, setQueueItems] = useState<AnalysisQueueItem[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [error, setError] = useState('');
@@ -19,12 +22,13 @@ export function BookmarksPage() {
   useEffect(() => {
     let isMounted = true;
 
-    void Promise.all([searchBookmarks(query), listCategories(), listTags()])
-      .then(([nextBookmarks, nextCategories, nextTags]) => {
+    void Promise.all([searchBookmarks(query), listCategories(), listTags(), listAnalysisQueueItems()])
+      .then(([nextBookmarks, nextCategories, nextTags, nextQueueItems]) => {
         if (isMounted) {
           setBookmarks(nextBookmarks);
           setCategories(nextCategories);
           setTags(nextTags);
+          setQueueItems(nextQueueItems);
           setError('');
         }
       })
@@ -78,6 +82,7 @@ export function BookmarksPage() {
             bookmark={bookmark}
             category={categories.find((category) => category.id === bookmark.categoryId)}
             key={bookmark.id}
+            queueItem={queueItems.find((item) => item.bookmarkId === bookmark.id)}
             tags={tags.filter((tag) => bookmark.tagIds.includes(tag.id))}
           />
         ))}

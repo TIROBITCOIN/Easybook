@@ -1,8 +1,8 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { enqueueBookmarkAnalysis, runAnalysisQueue } from '../analysisQueue/analysisQueueRunner';
 import { AiPrivacyNotice } from '../components/AiPrivacyNotice';
 import {
-  analyzeBookmark,
   createBookmark,
   findBookmarkBySourceUrl
 } from '../db/bookmarkRepository';
@@ -54,8 +54,8 @@ export function ShareTargetPage() {
     };
   }, [sourceUrl]);
 
-  const analyzeAndNavigate = async (bookmarkId: string) => {
-    await analyzeBookmark(bookmarkId);
+  const runQueuedAnalysisAndNavigate = async (bookmarkId: string) => {
+    await runAnalysisQueue();
     navigate(`/bookmarks/${bookmarkId}`);
   };
 
@@ -78,17 +78,19 @@ export function ShareTargetPage() {
       const bookmark = await createBookmark({ sourceUrl, originalText, title, userMemo });
       const settings = await getSettings();
 
-      if (!settings.aiAutoAnalyze) {
+      if (!settings.aiAutoAnalyze || !settings.analysisAutoRun) {
         navigate(`/bookmarks/${bookmark.id}`);
         return;
       }
+
+      await enqueueBookmarkAnalysis(bookmark.id);
 
       if (!settings.hasAcceptedAiPrivacyNotice) {
         setPendingBookmarkId(bookmark.id);
         return;
       }
 
-      await analyzeAndNavigate(bookmark.id);
+      await runQueuedAnalysisAndNavigate(bookmark.id);
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : '북마크 저장에 실패했습니다.');
     } finally {
@@ -112,7 +114,7 @@ export function ShareTargetPage() {
             const bookmarkId = pendingBookmarkId;
             setPendingBookmarkId('');
             setIsSaving(true);
-            await analyzeAndNavigate(bookmarkId);
+            await runQueuedAnalysisAndNavigate(bookmarkId);
           }}
           onDecline={() => {
             const bookmarkId = pendingBookmarkId;

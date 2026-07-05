@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { AnalysisStatusBadge } from './AnalysisStatusBadge';
 import { CategoryBadge } from './CategoryBadge';
 import { TagPill } from './TagPill';
+import type { AnalysisQueueItem } from '../analysisQueue/analysisQueueTypes';
 import type { BookmarkItem } from '../types/bookmark';
 import type { Category } from '../types/category';
 import type { Tag } from '../types/tag';
@@ -27,10 +28,12 @@ function preview(value: string, fallback: string): string {
 export function BookmarkCard({
   bookmark,
   category,
+  queueItem,
   tags
 }: {
   bookmark: BookmarkItem;
   category?: Category;
+  queueItem?: AnalysisQueueItem;
   tags: Tag[];
 }) {
   return (
@@ -39,7 +42,7 @@ export function BookmarkCard({
       to={`/bookmarks/${bookmark.id}`}
     >
       <div className="mb-3 flex flex-wrap gap-2">
-        <AnalysisStatusBadge bookmark={bookmark} category={category} />
+        <AnalysisStatusBadge bookmark={bookmark} category={category} queueItem={queueItem} />
         <CategoryBadge category={category} />
         <span className="rounded-full bg-slate-950 px-3 py-1 text-xs font-bold text-slate-300">
           {bookmark.importance}

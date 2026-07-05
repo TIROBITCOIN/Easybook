@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { clearSessionUnlocked } from '../auth/lockState';
 import { generateSalt, hashPassword, verifyPassword } from '../auth/passwordCrypto';
 import { getConfiguredProvider } from '../ai/analysisProvider';
+import { AnalysisLimitSettings } from '../components/AnalysisLimitSettings';
 import { AiPrivacyNotice } from '../components/AiPrivacyNotice';
 import { BackupPanel } from '../components/BackupPanel';
 import { DangerZone } from '../components/DangerZone';
@@ -227,6 +228,8 @@ export function SettingsPage() {
           </select>
         </label>
       </section>
+
+      <AnalysisLimitSettings settings={settings} onChange={(changes) => void patchSettings(changes)} />
 
       <BackupPanel
         onRestored={async () => {

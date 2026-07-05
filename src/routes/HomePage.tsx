@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Link } from 'react-router-dom';
+import { AnalysisQueuePanel } from '../components/AnalysisQueuePanel';
 import { BookmarkCard } from '../components/BookmarkCard';
 import { StatCard } from '../components/StatCard';
 import { db } from '../db/db';
@@ -8,6 +9,8 @@ export function HomePage() {
   const bookmarks = useLiveQuery(() => db.bookmarks.orderBy('createdAt').reverse().toArray(), [], []);
   const categories = useLiveQuery(() => db.categories.toArray(), [], []);
   const tags = useLiveQuery(() => db.tags.toArray(), [], []);
+  const queueItems = useLiveQuery(() => db.analysisQueue.orderBy('createdAt').reverse().toArray(), [], []);
+  const settings = useLiveQuery(() => db.settings.get('default'), [], undefined);
   const totalCount = bookmarks.length;
   const unreadCount = bookmarks.filter((bookmark) => bookmark.status === 'unread').length;
   const pendingAiCount = bookmarks.filter((bookmark) => !bookmark.difficultyExplanation.easy).length;
@@ -39,6 +42,8 @@ export function HomePage() {
         <StatCard label="검토 필요 카테고리" value={String(reviewCategoryCount)} />
       </section>
 
+      <AnalysisQueuePanel dailyLimit={settings?.analysisDailyLimit ?? 30} queueItems={queueItems} />
+
       <section>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-lg font-black text-white">최근 분석된 북마크</h2>
@@ -52,6 +57,7 @@ export function HomePage() {
               bookmark={bookmark}
               category={categories.find((category) => category.id === bookmark.categoryId)}
               key={bookmark.id}
+              queueItem={queueItems.find((item) => item.bookmarkId === bookmark.id)}
               tags={tags.filter((tag) => bookmark.tagIds.includes(tag.id))}
             />
           ))}
