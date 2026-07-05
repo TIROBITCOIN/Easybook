@@ -12,6 +12,12 @@ export type AppSettings = {
   aiAnalyzeSensitiveContent: boolean;
   hasAcceptedAiPrivacyNotice: boolean;
   aiProvider: AiProvider;
+  analysisDailyLimit: number;
+  analysisMaxInputChars: number;
+  analysisAutoRun: boolean;
+  analysisRetryEnabled: boolean;
+  analysisMaxAttempts: number;
+  analysisCooldownMinutes: number;
   backupMode: BackupMode;
   createdAt: string;
   updatedAt: string;

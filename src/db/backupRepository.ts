@@ -80,12 +80,13 @@ export async function restoreBackupData(
   data: BackupData,
   options: RestoreBackupOptions
 ): Promise<void> {
-  await db.transaction('rw', db.bookmarks, db.categories, db.tags, db.settings, async () => {
+  await db.transaction('rw', db.bookmarks, db.categories, db.tags, db.settings, db.analysisQueue, async () => {
     if (options.mode === 'overwrite') {
       const currentSettings = await db.settings.get('default');
       await db.bookmarks.clear();
       await db.categories.clear();
       await db.tags.clear();
+      await db.analysisQueue.clear();
       await db.bookmarks.bulkPut(data.bookmarks);
       await db.categories.bulkPut(data.categories);
       await db.tags.bulkPut(data.tags);

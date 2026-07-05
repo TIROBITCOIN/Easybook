@@ -1,5 +1,7 @@
 import { AiAnalysisError } from '../ai/analyzeBookmarkClient';
 import { analyzeBookmark as runAnalysis } from '../ai/analysisProvider';
+import { clearAnalysisQueueForBookmark } from '../analysisQueue/analysisQueueRepository';
+import { truncateAnalysisText } from '../analysisQueue/analysisLimits';
 import { db } from './db';
 import { ensureCategory, listCategories } from './categoryRepository';
 import { ensureTag } from './tagRepository';
@@ -102,7 +104,12 @@ export async function updateBookmarkImportance(
   await db.bookmarks.update(id, { importance, updatedAt: nowIso() });
 }
 
-export async function analyzeBookmark(id: string): Promise<BookmarkItem | undefined> {
+export async function analyzeBookmark(
+  id: string,
+  options: {
+    maxInputChars?: number;
+  } = {}
+): Promise<BookmarkItem | undefined> {
   const bookmark = await getBookmark(id);
   if (!bookmark) {
     return undefined;
@@ -112,9 +119,12 @@ export async function analyzeBookmark(id: string): Promise<BookmarkItem | undefi
 
   try {
     const settings = await getSettings();
+    const analysisText = options.maxInputChars
+      ? truncateAnalysisText(bookmark.originalText, options.maxInputChars).originalText
+      : bookmark.originalText;
     const analysis = await runAnalysis(
       {
-        originalText: bookmark.originalText,
+        originalText: analysisText,
         sourceUrl: bookmark.sourceUrl,
         existingCategories: await listCategories()
       },
@@ -165,5 +175,6 @@ export async function analyzeBookmark(id: string): Promise<BookmarkItem | undefi
 }
 
 export async function deleteBookmark(id: string): Promise<void> {
+  await clearAnalysisQueueForBookmark(id);
   await db.bookmarks.delete(id);
 }

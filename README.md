@@ -31,6 +31,7 @@ Do not commit real API keys. `OPENAI_API_KEY` is used only by the serverless API
 - Dexie / IndexedDB storage in the browser
 - Real AI analysis through `/api/analyze-bookmark`
 - Mock AI provider for local development
+- Local AI analysis queue with daily limits, retry backoff, and max input length controls
 - Automatic category and tag creation from AI analysis results
 - Easy, medium, and advanced explanation sections
 - AI privacy consent before sending bookmark text/link for analysis
@@ -74,6 +75,26 @@ To develop without a real API key, set:
 ```bash
 VITE_AI_PROVIDER=mock
 ```
+
+### Analysis Queue and Limits
+
+Easybook places automatic and manual analysis requests into a local IndexedDB queue before running them. The queue is stored only in the browser and is not uploaded to a server.
+
+Default limits:
+
+- Daily analysis attempts: `30`
+- Max AI input text: `6000` characters
+- Retry enabled: yes
+- Max attempts per queue item: `3`
+- Retry cooldown: `5` minutes multiplied by the current attempt count
+
+The original bookmark text is not truncated in storage. Only the text sent to the existing `/api/analyze-bookmark` route is capped by the configured max input length.
+
+If the daily limit is reached, queued analysis waits instead of calling the API. Temporary failures such as network errors, rate limits, and generic request failures can be retried with backoff. Invalid input and invalid AI response errors are not retried indefinitely.
+
+The Settings screen lets you turn automatic queue execution on or off and adjust the daily limit, max input length, retry count, and cooldown. The Home, bookmark list, and detail screens show whether analysis is waiting, running, complete, failed, or at its attempt limit.
+
+Analysis queue state is intentionally not included in Easybook backups. Restored bookmarks can be analyzed again from their detail page.
 
 ## Local Data
 
@@ -127,4 +148,4 @@ Do not add `OPENAI_API_KEY` as a client-visible `VITE_` variable.
 
 ## Next PR
 
-The next PR will improve the AI analysis queue, daily analysis limits, cost limits, retry/failure handling, and duplicate analysis prevention.
+The next PR will implement duplicate bookmark detection for matching URLs, matching source text, and similar bookmark content.

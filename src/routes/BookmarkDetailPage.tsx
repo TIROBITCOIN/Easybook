@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { getLatestAnalysisQueueItemForBookmark } from '../analysisQueue/analysisQueueRepository';
+import { enqueueBookmarkAnalysis, runAnalysisQueue } from '../analysisQueue/analysisQueueRunner';
+import type { AnalysisQueueItem } from '../analysisQueue/analysisQueueTypes';
 import { AiPrivacyNotice } from '../components/AiPrivacyNotice';
 import { AnalysisErrorBox } from '../components/AnalysisErrorBox';
+import { AnalysisQueueStatusBadge } from '../components/AnalysisQueueStatusBadge';
 import { AnalysisStatusBadge } from '../components/AnalysisStatusBadge';
 import { CategoryBadge } from '../components/CategoryBadge';
 import { DifficultyExplanation } from '../components/DifficultyExplanation';
 import { TagPill } from '../components/TagPill';
 import {
-  analyzeBookmark,
   deleteBookmark,
   getBookmark,
   updateBookmarkImportance,
@@ -31,6 +34,7 @@ export function BookmarkDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [bookmark, setBookmark] = useState<BookmarkItem | null>(null);
+  const [queueItem, setQueueItem] = useState<AnalysisQueueItem | undefined>();
   const [category, setCategory] = useState<Category | undefined>();
   const [tags, setTags] = useState<Tag[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -41,6 +45,7 @@ export function BookmarkDetailPage() {
   const refresh = useCallback(async () => {
     if (!id) {
       setBookmark(null);
+      setQueueItem(undefined);
       setIsLoading(false);
       return;
     }
@@ -49,6 +54,7 @@ export function BookmarkDetailPage() {
       const nextBookmark = (await getBookmark(id)) ?? null;
       const allTags = await listTags();
       setBookmark(nextBookmark);
+      setQueueItem(await getLatestAnalysisQueueItemForBookmark(id));
       setCategory(await getCategory(nextBookmark?.categoryId));
       setTags(nextBookmark ? allTags.filter((tag) => nextBookmark.tagIds.includes(tag.id)) : []);
       setError('');
@@ -84,7 +90,8 @@ export function BookmarkDetailPage() {
     }
 
     setIsAnalyzing(true);
-    await analyzeBookmark(bookmark.id);
+    await enqueueBookmarkAnalysis(bookmark.id, { force: true, priority: 'high' });
+    await runAnalysisQueue();
     await refresh();
     setIsAnalyzing(false);
   };
@@ -122,7 +129,8 @@ export function BookmarkDetailPage() {
       ) : null}
       <section className="rounded-3xl border border-slate-800 bg-slate-900/80 p-5">
         <div className="flex flex-wrap gap-2">
-          <AnalysisStatusBadge bookmark={bookmark} category={category} />
+          <AnalysisStatusBadge bookmark={bookmark} category={category} queueItem={queueItem} />
+          <AnalysisQueueStatusBadge queueItem={queueItem} />
           <CategoryBadge category={category} />
           <span className="rounded-full bg-slate-950 px-3 py-1 text-xs font-bold text-slate-300">{bookmark.status}</span>
           <span className="rounded-full bg-slate-950 px-3 py-1 text-xs font-bold text-slate-300">{bookmark.importance}</span>
@@ -135,11 +143,20 @@ export function BookmarkDetailPage() {
         ) : null}
       </section>
 
-      <AnalysisErrorBox bookmark={bookmark} />
+      <AnalysisErrorBox bookmark={bookmark} queueItem={queueItem} />
 
       <section className="rounded-3xl border border-slate-800 bg-slate-900/80 p-5">
         <h3 className="font-black text-white">요약</h3>
         <p className="mt-3 text-sm leading-6 text-slate-400">{bookmark.summary || 'AI 분석 전입니다.'}</p>
+        {queueItem ? (
+          <div className="mt-4 rounded-2xl border border-slate-800 bg-slate-950 p-4 text-xs leading-5 text-slate-400">
+            <p>
+              분석 대기열: {queueItem.status} · 시도 {queueItem.attempts} / {queueItem.maxAttempts}
+            </p>
+            {queueItem.status === 'queued' ? <p>예정: {formatDate(queueItem.scheduledAt)}</p> : null}
+            {queueItem.errorMessage ? <p>마지막 오류: {queueItem.errorMessage}</p> : null}
+          </div>
+        ) : null}
         <button
           className="mt-4 min-h-12 w-full rounded-2xl bg-sky-300 px-5 text-sm font-black text-slate-950 disabled:opacity-60"
           disabled={isAnalyzing}

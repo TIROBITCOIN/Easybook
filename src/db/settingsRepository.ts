@@ -13,6 +13,12 @@ export function createDefaultSettings(): AppSettings {
     aiAnalyzeSensitiveContent: true,
     hasAcceptedAiPrivacyNotice: false,
     aiProvider: import.meta.env.VITE_AI_PROVIDER === 'mock' ? 'mock' : 'real',
+    analysisDailyLimit: 30,
+    analysisMaxInputChars: 6000,
+    analysisAutoRun: true,
+    analysisRetryEnabled: true,
+    analysisMaxAttempts: 3,
+    analysisCooldownMinutes: 5,
     backupMode: 'encrypted',
     createdAt: timestamp,
     updatedAt: timestamp
@@ -32,6 +38,12 @@ function normalizeSettings(settings: Partial<AppSettings> | undefined): AppSetti
     hasAcceptedAiPrivacyNotice:
       settings?.hasAcceptedAiPrivacyNotice ?? defaults.hasAcceptedAiPrivacyNotice,
     aiProvider: settings?.aiProvider ?? defaults.aiProvider,
+    analysisDailyLimit: settings?.analysisDailyLimit ?? defaults.analysisDailyLimit,
+    analysisMaxInputChars: settings?.analysisMaxInputChars ?? defaults.analysisMaxInputChars,
+    analysisAutoRun: settings?.analysisAutoRun ?? defaults.analysisAutoRun,
+    analysisRetryEnabled: settings?.analysisRetryEnabled ?? defaults.analysisRetryEnabled,
+    analysisMaxAttempts: settings?.analysisMaxAttempts ?? defaults.analysisMaxAttempts,
+    analysisCooldownMinutes: settings?.analysisCooldownMinutes ?? defaults.analysisCooldownMinutes,
     backupMode: settings?.backupMode ?? defaults.backupMode,
     createdAt: settings?.createdAt ?? defaults.createdAt,
     updatedAt: settings?.updatedAt ?? defaults.updatedAt
@@ -64,10 +76,11 @@ export async function updateSettings(changes: Partial<Omit<AppSettings, 'id' | '
 }
 
 export async function clearAllData(): Promise<void> {
-  await db.transaction('rw', db.bookmarks, db.categories, db.tags, db.settings, async () => {
+  await db.transaction('rw', db.bookmarks, db.categories, db.tags, db.settings, db.analysisQueue, async () => {
     await db.bookmarks.clear();
     await db.categories.clear();
     await db.tags.clear();
     await db.settings.clear();
+    await db.analysisQueue.clear();
   });
 }
