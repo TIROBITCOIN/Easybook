@@ -7,6 +7,7 @@ import { BookmarksPage } from './routes/BookmarksPage';
 import { CategoriesPage } from './routes/CategoriesPage';
 import { HomePage } from './routes/HomePage';
 import { SettingsPage } from './routes/SettingsPage';
+import { ShareTargetPage } from './routes/ShareTargetPage';
 
 export function App() {
   return (
@@ -17,6 +18,7 @@ export function App() {
           <Route path="/bookmarks" element={<BookmarksPage />} />
           <Route path="/bookmarks/:id" element={<BookmarkDetailPage />} />
           <Route path="/add" element={<AddBookmarkPage />} />
+          <Route path="/share-target" element={<ShareTargetPage />} />
           <Route path="/categories" element={<CategoriesPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="*" element={<Navigate replace to="/" />} />

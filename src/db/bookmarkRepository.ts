@@ -63,6 +63,15 @@ export async function getBookmark(id: string): Promise<BookmarkItem | undefined>
   return db.bookmarks.get(id);
 }
 
+export async function findBookmarkBySourceUrl(sourceUrl: string): Promise<BookmarkItem | undefined> {
+  const normalized = sourceUrl.trim();
+  if (!normalized) {
+    return undefined;
+  }
+
+  return db.bookmarks.where('sourceUrl').equals(normalized).first();
+}
+
 export async function listBookmarks(): Promise<BookmarkItem[]> {
   return db.bookmarks.orderBy('createdAt').reverse().toArray();
 }

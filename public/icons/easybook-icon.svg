@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Easybook app icon</title>
+  <desc id="desc">A dark rounded square with a simple bookmark and the letter E.</desc>
+  <rect width="512" height="512" rx="112" fill="#020617" />
+  <rect x="96" y="72" width="320" height="368" rx="48" fill="#0f172a" stroke="#38bdf8" stroke-width="18" />
+  <path d="M332 72v176l-58-34-58 34V72z" fill="#38bdf8" />
+  <path
+    d="M178 302h156M178 352h122M178 252h102"
+    fill="none"
+    stroke="#f8fafc"
+    stroke-linecap="round"
+    stroke-width="32"
+  />
+</svg>

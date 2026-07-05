@@ -6,6 +6,7 @@ import { getConfiguredProvider } from '../ai/analysisProvider';
 import { AiPrivacyNotice } from '../components/AiPrivacyNotice';
 import { BackupPanel } from '../components/BackupPanel';
 import { DangerZone } from '../components/DangerZone';
+import { InstallPwaCard } from '../components/InstallPwaCard';
 import { PasswordInput } from '../components/PasswordInput';
 import { SettingsToggle } from '../components/SettingsToggle';
 import { clearAllData, getSettings, updateSettings } from '../db/settingsRepository';
@@ -117,6 +118,8 @@ export function SettingsPage() {
 
       {message ? <p className="rounded-2xl border border-emerald-300/30 bg-emerald-300/10 p-4 text-sm text-emerald-200">{message}</p> : null}
       {error ? <p className="rounded-2xl border border-red-400/30 bg-red-400/10 p-4 text-sm text-red-200">{error}</p> : null}
+
+      <InstallPwaCard />
 
       <section className="space-y-4 rounded-3xl border border-slate-800 bg-slate-900/80 p-5">
         <h3 className="text-lg font-black text-white">보안</h3>

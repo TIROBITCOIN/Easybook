@@ -24,6 +24,8 @@ Do not commit real API keys. `OPENAI_API_KEY` is used only by the serverless API
 ## Current Features
 
 - Mobile-first dark app shell
+- Installable PWA manifest with home screen icons
+- Web Share Target support for shared title, text, and URL payloads
 - Local bookmark creation with link, original text, title, and memo
 - Bookmark list, search, detail view, status changes, importance changes, and delete
 - Dexie / IndexedDB storage in the browser
@@ -39,6 +41,22 @@ Do not commit real API keys. `OPENAI_API_KEY` is used only by the serverless API
 - Dark/light theme setting
 - Plain JSON backup export, encrypted JSON backup export, import, preview, merge restore, and overwrite restore
 - Full local data deletion from settings
+
+## PWA Install and Share Target
+
+Easybook can be installed from supported browsers as a standalone app.
+
+- Chrome/Edge desktop: use the install icon in the address bar or browser menu.
+- Android Chrome: use the browser menu and choose the home screen/app install option.
+- iOS Safari: use the share button and choose the home screen option.
+
+After Easybook is installed, supported browsers can show Easybook as a share target. From X/Twitter or a browser page, use the share menu, choose Easybook, review the shared link/text/title, and save it as a local bookmark. Easybook opens `/share-target` with the shared fields prefilled so you can edit the title, body, link, and memo before saving.
+
+Browser support differs by device and browser. If Easybook does not appear in the share menu, copy the link and paste it into the manual Add bookmark screen.
+
+Shared data is not stored on an Easybook server. It is only saved to the browser's local IndexedDB after you confirm the save. If automatic AI analysis is enabled and you have accepted the AI privacy notice, Easybook uses the existing `/api/analyze-bookmark` route for analysis; otherwise the bookmark remains local until you choose to analyze it.
+
+X API automatic bookmark sync, X OAuth login, accounts, server databases, and cloud sync are not implemented yet.
 
 ## AI Analysis
 
@@ -109,4 +127,4 @@ Do not add `OPENAI_API_KEY` as a client-visible `VITE_` variable.
 
 ## Next PR
 
-The next PR will configure the PWA manifest, implement Web Share Target, and support importing links or text shared from the X app or a browser into Easybook.
+The next PR will improve the AI analysis queue, daily analysis limits, cost limits, retry/failure handling, and duplicate analysis prevention.
