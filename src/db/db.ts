@@ -46,6 +46,15 @@ export class EasybookDatabase extends Dexie {
       settings: 'id',
       analysisQueue: 'id, bookmarkId, status, priority, scheduledAt, createdAt, updatedAt'
     });
+
+    this.version(6).stores({
+      bookmarks:
+        'id, createdAt, updatedAt, status, importance, sourceUrl, canonicalUrl, contentFingerprint, duplicateStatus, duplicateOfBookmarkId, categoryId, *tagIds',
+      categories: 'id, name, createdBy, needsReview, createdAt',
+      tags: 'id, name, createdBy, createdAt',
+      settings: 'id',
+      analysisQueue: 'id, bookmarkId, status, priority, scheduledAt, createdAt, updatedAt'
+    });
   }
 }
 

@@ -27,6 +27,7 @@ Do not commit real API keys. `OPENAI_API_KEY` is used only by the serverless API
 - Installable PWA manifest with home screen icons
 - Web Share Target support for shared title, text, and URL payloads
 - Local bookmark creation with link, original text, title, and memo
+- Local duplicate detection for matching URLs, X/Twitter posts, and similar text
 - Bookmark list, search, detail view, status changes, importance changes, and delete
 - Dexie / IndexedDB storage in the browser
 - Real AI analysis through `/api/analyze-bookmark`
@@ -96,6 +97,18 @@ The Settings screen lets you turn automatic queue execution on or off and adjust
 
 Analysis queue state is intentionally not included in Easybook backups. Restored bookmarks can be analyzed again from their detail page.
 
+## Duplicate Detection
+
+Easybook checks for duplicate bookmarks locally in the browser before saving new items from the manual Add screen or the PWA share target.
+
+- Regular URLs are normalized by trimming whitespace, forcing a stable HTTPS form, removing fragments, removing common tracking parameters, and dropping trailing slashes.
+- X/Twitter links from `twitter.com`, `mobile.twitter.com`, and `x.com` are normalized to a canonical tweet URL such as `https://x.com/i/status/123`.
+- Bookmark title/body/link text is converted into a local fingerprint, and simple token similarity is used to find likely duplicate text.
+
+Duplicate candidates are warnings, not automatic decisions. Easybook does not delete, overwrite, or merge bookmarks automatically. When candidates are found, you can open the existing bookmark, save the new bookmark anyway, cancel the save, or mark a candidate as not a duplicate from the detail screen.
+
+All duplicate checks run against local IndexedDB data. Easybook does not use an external embedding API, does not send duplicate candidates to a server, and does not add a server database for this feature.
+
 ## Local Data
 
 Bookmarks, categories, tags, and app settings are stored only in the browser IndexedDB database named `easybook-db`.
@@ -148,4 +161,4 @@ Do not add `OPENAI_API_KEY` as a client-visible `VITE_` variable.
 
 ## Next PR
 
-The next PR will implement duplicate bookmark detection for matching URLs, matching source text, and similar bookmark content.
+The next PR will implement a revisit system for saved bookmarks, including revisit cards and reminders for items worth reading again.
